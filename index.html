@@ -17,7 +17,27 @@
     .chip{ display:inline-block; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:999px; font-size:12px; }
     .btn{ border:1px solid #bbb; background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; }
     .btn.primary{ background:#111827; color:#fff; border-color:#111827; }
-    .btn[disabled]{ opacity:.5; cursor:not-allowed; }
+    .btn[disabled]{ opacity:.5; cursor:not-allowed;
+/* 既存の<style>の一番下に追記 */
+.banner{
+  margin-top:12px; padding:12px 14px; border-radius:12px; border:1px solid;
+  display:flex; align-items:center; gap:10px; font-weight:600;
+}
+.banner.success{ background:#ecfdf5; border-color:#16a34a; color:#065f46; }
+.banner.error{   background:#fef2f2; border-color:#ef4444; color:#7f1d1d; }
+
+.kbd{font:inherit; font-weight:700; padding:0 8px; border:1px solid #d1d5db;
+  border-bottom-width:2px; border-radius:8px; background:#fff; }
+
+.opt{ position:relative; }
+.opt .mark{
+  position:absolute; left:10px; top:50%; transform:translateY(-50%);
+  font-size:18px; opacity:.9;
+}
+.opt .text{ display:block; padding-left:28px; } /* アイコン分の余白 */
+.opt.correct{ border-width:2px; }
+.opt.wrong{ border-width:2px; }
+ }
   </style>
   <!-- React (CDN) + Babel -->
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -338,20 +358,35 @@
             <h2>{q.title}</h2>
             <p>{q.scenario}</p>
 
-            {displayedOptions.map((op,i)=>{
-              const isCorrect = i===displayedCorrectIndex;
-              const chosen = answered===i;
-              let cls="opt";
-              if(answered!=null){
-                if(isCorrect) cls+=" correct";
-                else if(chosen) cls+=" wrong";
-              }
-              return (
-                <button key={i} className={cls} onClick={()=>choose(i)}>
-                  {String.fromCharCode(65+i)}. {op}
-                </button>
-              );
-            })}
+            {displayedOptions.map((op, i) => {
+  const isCorrect = i === displayedCorrectIndex;
+  const chosen = answered === i;
+  let cls = "opt";
+  if (answered != null) {
+    if (isCorrect) cls += " correct";
+    else if (chosen) cls += " wrong";
+  }
+
+  return (
+    <div
+      key={i}
+      className={cls}
+      onClick={() => answered == null && choose(i)}
+    >
+      <span className="mark">
+        {answered != null
+          ? isCorrect
+            ? "✔️"
+            : chosen
+            ? "❌"
+            : ""
+          : String.fromCharCode(65 + i)}
+      </span>
+      <span className="text">{op}</span>
+    </div>
+  );
+})}
+
 
             {answered!=null && <p className="muted">解説：{q.explanation}</p>}
 
