@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>保育園ヒヤリハット対策クイズ</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#f7f7f8; margin:0; }
+    .container{ max-width: 960px; margin:0 auto; padding:16px; }
+    .card{ background:#fff; border:1px solid #ddd; border-radius:12px; padding:16px; margin-top:8px; }
+    .opt{ display:block; margin:6px 0; padding:10px; border:1px solid #ccc; border-radius:8px; text-align:left; background:#fff; cursor:pointer; }
+    .opt:hover{ background:#f9fafb; }
+    .opt.correct{ border-color:#22c55e; background:#ecfdf5; }
+    .opt.wrong{ border-color:#ef4444; background:#fef2f2; }
+    .muted{ color:#666; font-size:12px; }
+    .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .chip{ display:inline-block; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:999px; font-size:12px; }
+    .btn{ border:1px solid #bbb; background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; }
+    .btn.primary{ background:#111827; color:#fff; border-color:#111827; }
+    .btn[disabled]{ opacity:.5; cursor:not-allowed; }
+  </style>
+  <!-- React (CDN) + Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // ==== 問題データ ====
+    const QUESTIONS = [
+      {
+    id:"N001",
+    scene:"園外保育",
+    title:"散歩中の靴紐対応で列が乱れた",
+    scenario:"靴紐を結んでいる間に、別の子が列から離れかけた。車道が近い。",
+    options:[
+      "全体を止め、役割を交代し、再開前に人数を確認する", // 正解
+      "全体を止めるが、人数確認は省略して時間短縮する",
+      "靴紐の子だけ端に寄せ、他は歩かせながら注意を続ける",
+      "後方が見えていれば先頭は進んでも問題ない"
+    ],
+    correctIndex:0,
+    explanation:"停止＋交代＋人数確認の3点が揃って初めて安全が確保できる。"
+  },
+  {
+    id:"N002",
+    scene:"園外保育",
+    title:"帽子追走の飛び出し",
+    scenario:"風で帽子が飛び、園児が道路側へ追いかけそうになった。",
+    options:[
+      "追わない約束を共有し、大人が回収。列を止めて人数を確認してから再開する", // 正解
+      "追わない約束はするが、列は動かしたまま職員が拾う",
+      "大声で止めれば十分で、事前に約束をしなくてもよい",
+      "帽子を屋外で使わなければ根本的に解決する"
+    ],
+    correctIndex:0,
+    explanation:"事前合意と停止手順が必要。物品禁止や声かけだけではリスクが残る。"
+  },
+  {
+    id:"N003",
+    scene:"園外保育",
+    title:"異年齢散歩での見失い",
+    scenario:"3〜5歳合同散歩。横断対応中に2名が列から離れた。",
+    options:[
+      "前後と中間に配置し、横断前後で小さな点呼を行う", // 正解
+      "中間配置を省き、前後だけで見守る",
+      "横断時だけ人数確認し、普段は必要ない",
+      "経験のある職員がいれば特別な配置は不要"
+    ],
+    correctIndex:0,
+    explanation:"横断はリスクが高く、三点配置＋点呼が抜けを防ぐ。"
+  },
+  {
+    id:"N004",
+    scene:"園内（室内）",
+    title:"午睡準備中の窓からの抜け出し",
+    scenario:"カーテン裏で遊んでいた子が窓を開け園庭へ出た。",
+    options:[
+      "施錠を標準化し、全員集合後に準備し、所在を確認する", // 正解
+      "施錠は徹底するが、全員が揃う前に準備を始める",
+      "窓を開けても『出ない約束』があれば安全と考える",
+      "準備の流れを止めないため点呼は省略する"
+    ],
+    correctIndex:0,
+    explanation:"施錠＋集合確認＋点呼が欠けると再発リスクが残る。"
+  },
+  {
+    id:"N005",
+    scene:"園内（室外）",
+    title:"遊具倉庫で閉じ込めが発生",
+    scenario:"倉庫内にいた園児に気づかず外から鍵をかけてしまった。",
+    options:[
+      "内側から解錠できる構造に改修し、入退室は職員が最終確認する", // 正解
+      "鍵はそのままにし、巡回を増やして見守る",
+      "倉庫の利用を減らし、使う時だけ注意を強める",
+      "掲示を貼って子どもに『入らない』と意識させる"
+    ],
+    correctIndex:0,
+    explanation:"構造対策＋最終確認が必須。運用や掲示だけでは取りこぼす。"
+  },
+  {
+    id:"N006",
+    scene:"降園・送迎",
+    title:"簡易レバー門からの走り出し",
+    scenario:"お迎え時、門の施錠が甘く園児が外に出た。",
+    options:[
+      "出入口担当を置き、施錠運用と時間帯手順を明文化する", // 正解
+      "出入口に職員を置くが、施錠手順は定めない",
+      "掲示を増やし注意を促す",
+      "保護者責任を周知して職員は門から離れる"
+    ],
+    correctIndex:0,
+    explanation:"人的配置＋手順＋施錠管理が揃って安全が担保される。"
+  },
+  {
+    id:"N007",
+    scene:"園内（室外）",
+    title:"行事での側門開放",
+    scenario:"夏祭りで側門を開放したが、見守りが薄くなった。",
+    options:[
+      "側門に担当を固定配置し、定時で人数確認を行う", // 正解
+      "側門に担当を置くが、人数確認は行わない",
+      "全員で広く見守れば固定担当は不要",
+      "保護者に任せ職員は行事に集中する"
+    ],
+    correctIndex:0,
+    explanation:"固定担当＋点呼があって初めて抜けを防げる。"
+  },
+  {
+    id:"N008",
+    scene:"降園・送迎",
+    title:"駐車場方向への走出",
+    scenario:"降園時、園児が保護者の手を振り切って駐車場へ向かった。",
+    options:[
+      "車動線と歩行動線を分け、停止合図を共有する", // 正解
+      "車が停まっていれば危険は低いので見守る",
+      "職員が見ていれば分離は不要",
+      "強い叱責で行動を抑える"
+    ],
+    correctIndex:0,
+    explanation:"物理的分離と合図共有が実効策。"
+  },
+  {
+    id:"N009",
+    scene:"園内（室外）",
+    title:"園庭からの入室で置き去りが出た",
+    scenario:"入室後に遊具下に園児が残っていたことが判明。",
+    options:[
+      "移動係と確認係を分け、入室直前に点呼を行う", // 正解
+      "人数確認はするが、タイミングは帰室後にまとめる",
+      "見渡して問題なければ進める",
+      "泣き声があれば気づくので特別な確認は不要"
+    ],
+    correctIndex:0,
+    explanation:"直前点呼と役割分担が抜け防止の要。"
+  },
+  {
+    id:"N010",
+    scene:"園外保育",
+    title:"公園で一時保育児を見失った",
+    scenario:"集合合図後、一時保育児が木の陰に隠れ所在不明となった。",
+    options:[
+      "死角を地図化し担当を割り当て、活動範囲を示す", // 正解
+      "死角を共有するが、担当割り当てはしない",
+      "集合時だけ人数を確認する",
+      "経験者がいれば特別な仕組みは不要"
+    ],
+    correctIndex:0,
+    explanation:"死角の把握＋担当割当て＋範囲提示が三本柱。"
+  },
+  {
+    id:"N011",
+    scene:"園内（室内）",
+    title:"通路の玩具で転倒しかけた",
+    scenario:"切替直後、通路に残ったブロックを踏み転びかけた。",
+    options:[
+      "切替時は通路を先に片付け、歩行経路を確保してから案内する", // 正解
+      "片付けはするが、通路より先に棚や机を優先する",
+      "足元を見るよう伝え、片付けは後で行う",
+      "通路にマットを敷いて自由にさせる"
+    ],
+    correctIndex:0,
+    explanation:"通路を優先して空けることが安全につながる。"
+  },
+  {
+    id:"N012",
+    scene:"園内（室内）",
+    title:"友だちの首元を掴んだ",
+    scenario:"配膳待ちに園児が隣の子の首元を掴んだ。",
+    options:[
+      "掴まないことを伝え、席間隔を見直し待ち時間を短くする", // 正解
+      "掴まないことは伝えるが、席間隔や待ち時間は変えない",
+      "一度強く叱って記憶させる",
+      "首以外なら掴んでも危険は低いとする"
+    ],
+    correctIndex:0,
+    explanation:"言葉と環境調整が両立して初めて効果がある。"
+  },
+  {
+    id:"N013",
+    scene:"園内（室内）",
+    title:"収納棚によじ登ろうとした",
+    scenario:"取っ手にぶら下がり登ろうとする子がいた。",
+    options:[
+      "棚を壁に固定し取っ手を安全形状にし、登りたい欲は代替遊びで満たす", // 正解
+      "棚はそのままにして、登りたい時は呼ぶように伝える",
+      "掲示で注意を促し、運用で対応する",
+      "近くで見ていれば危険は起きにくいので許容する"
+    ],
+    correctIndex:0,
+    explanation:"構造対策＋代替の場が揃ってこそ効果的。"
+  },
+  {
+    id:"N014",
+    scene:"園内（室内）",
+    title:"椅子の上でジャンプを始めた",
+    scenario:"椅子の上に立ち複数名が跳ね始めた。",
+    options:[
+      "椅子は座る物と伝え、ジャンプはマットや園庭に切り替える", // 正解
+      "椅子でのジャンプは禁止するが、代替の場は示さない",
+      "滑り止めを付ければ椅子上でも許可できる",
+      "注意の掲示を貼って自制に任せる"
+    ],
+    correctIndex:0,
+    explanation:"禁止と代替をセットで示すことが大切。"
+  },
+  {
+    id:"N015",
+    scene:"園内（室内）",
+    title:"給食中にむせ込みが続いた",
+    scenario:"立ち歩きと大きな一口でむせ込みが起きた。",
+    options:[
+      "着席と一口量と姿勢を巡回し、むせたら止めて体勢を整える", // 正解
+      "着席は徹底するが、一口量や姿勢は自由に任せる",
+      "会話を止めれば多くは防げるので他は現状維持",
+      "事例が出た後にまとめて周知する"
+    ],
+    correctIndex:0,
+    explanation:"複合要素を見守り、むせた時に流れを一度リセットする手順が必要。"
+  }
+    ];
+
+    // ==== シャッフル関数 ====
+    const shuffle = (arr)=>{
+      const a=[...arr];
+      for(let i=a.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+      return a;
+    };
+
+    function App(){
+      const total = QUESTIONS.length;
+
+      // 初期化時に全問題の選択肢並びをシャッフル
+      const [perms, setPerms] = useState(()=> QUESTIONS.map(q => shuffle([...Array(q.options.length).keys()])));
+      const [answers, setAnswers] = useState(Array(total).fill(null));
+      const [index, setIndex] = useState(0);
+      const [finished, setFinished] = useState(false);
+
+      const q = QUESTIONS[index];
+      const perm = perms[index] || [];
+      const displayedOptions = perm.map(i => q.options[i]);
+      const displayedCorrectIndex = perm.findIndex(i => i === q.correctIndex);
+      const answered = answers[index];
+
+      const choose = (i)=>{
+        setAnswers(a => { const b=[...a]; b[index]=i; return b; });
+      };
+
+      const prev = ()=> setIndex(i => Math.max(0, i-1));
+      const next = ()=>{
+        if(index === total - 1){
+          setFinished(true);
+        }else{
+          setIndex(i => i+1);
+        }
+      };
+
+      const restart = ()=>{
+        setPerms(QUESTIONS.map(q => shuffle([...Array(q.options.length).keys()])));
+        setAnswers(Array(total).fill(null));
+        setIndex(0);
+        setFinished(false);
+      };
+
+      const score = useMemo(()=>{
+        return QUESTIONS.reduce((s, q, i) => {
+          const dCorrect = perms[i].findIndex(idx => idx === q.correctIndex);
+          return s + ((answers[i] ?? -1) === dCorrect ? 1 : 0);
+        }, 0);
+      }, [answers, perms]);
+
+      if(finished){
+        return (
+          <div className="container">
+            <h1>保育園ヒヤリハット対策クイズ</h1>
+            <div className="card">
+              <h2>結果</h2>
+              <p className="muted">スコア：{score} / {total}</p>
+              <ul>
+                {QUESTIONS.map((qq, i)=>{
+                  const p = perms[i];
+                  const dCorrect = p.findIndex(idx => idx === qq.correctIndex);
+                  const my = answers[i];
+                  return (
+                    <li key={qq.id} style={{margin:"10px 0"}}>
+                      <div className="muted">[{qq.scene}] #{qq.id}</div>
+                      <div><b>{qq.title}</b></div>
+                      <div className="muted">正解：{String.fromCharCode(65 + dCorrect)} ／ あなた：{my!=null ? String.fromCharCode(65 + my) : "—"}</div>
+                      <div>{qq.explanation}</div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="row" style={{marginTop:8}}>
+                <button className="btn primary" onClick={restart}>もう一度（並びを変えてやり直す）</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="container">
+          <h1>保育園ヒヤリハット対策クイズ</h1>
+          <div className="row muted" style={{marginTop:4}}>
+            <span>{index+1} / {total}</span>
+            <span>（選択肢は毎回ランダム並び）</span>
+          </div>
+
+          <div className="card">
+            <div className="muted"><span className="chip">{q.scene}</span> <span>#{q.id}</span></div>
+            <h2>{q.title}</h2>
+            <p>{q.scenario}</p>
+
+            {displayedOptions.map((op,i)=>{
+              const isCorrect = i===displayedCorrectIndex;
+              const chosen = answered===i;
+              let cls="opt";
+              if(answered!=null){
+                if(isCorrect) cls+=" correct";
+                else if(chosen) cls+=" wrong";
+              }
+              return (
+                <button key={i} className={cls} onClick={()=>choose(i)}>
+                  {String.fromCharCode(65+i)}. {op}
+                </button>
+              );
+            })}
+
+            {answered!=null && <p className="muted">解説：{q.explanation}</p>}
+
+            <div className="row" style={{marginTop:8}}>
+              <button className="btn" onClick={prev} disabled={index===0}>前へ</button>
+              <button className="btn primary" onClick={next} disabled={answered==null}>
+                {index===total-1 ? "結果を見る" : "次へ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
